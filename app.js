@@ -6,6 +6,15 @@ $(document).ready( function() {
 		var tags = $(this).find("input[name='tags']").val();
 		getUnanswered(tags);
 	});
+
+	$(".inspiration-getter").submit(function(event){
+		//zero out results if previous search has run
+		$('.results').html('');
+		// get the value of the tags the user submitted
+		var tags = $(this).find("input[name='answerers']").val();
+		getTopAnswerers(tags);
+
+	})
 });
 
 // this function takes the question object returned by StackOverflow 
@@ -40,6 +49,34 @@ var showQuestion = function(question) {
 
 	return result;
 };
+
+var showAnswerer = function(answerer){
+	// clone our result template code
+	var result = $('.templates .reviewer').clone();
+	
+	// Set the name in result
+	var name = result.find(".name a");
+	name.attr("href", answerer.link);
+	name.text(answerer.display_name);
+
+	// Set the image url
+	var image = result.find(".image img");
+	image.attr("src", answerer.profile_image);
+
+	//Set the acceptance rate
+	if (answerer.hasOwnProperty("accept_rate")){
+		var accept = result.find(".accept_rate");
+		accept.text(answerer.accept_rate + "%");
+	} else {
+		result.find(".accept_rate_dt").remove();
+	}
+
+	//Set the Reputation
+	var rep = result.find(".reputation");
+	rep.text(answerer.reputation);
+
+	return result;
+}
 
 
 // this function takes the results object from StackOverflow
@@ -88,5 +125,27 @@ var getUnanswered = function(tags) {
 	});
 };
 
+var getTopAnswerers = function(tag){
+	var result = $.ajax({
+		url: "http://api.stackexchange.com/2.2/tags/" + tag + "/top-answerers/all_time?site=stackoverflow",
+		dataType: "jsonp",
+		type: "GET",
+		})
+	.done(function(result){
+		console.log(result);
+		
+		var searchResults = showSearchResults(tag, result.items.length);
 
+		$('.search-results').html(searchResults);
+
+		$.each(result.items, function(i, item) {
+			var answerer = showAnswerer(item.user);
+			$('.results').append(answerer);
+		});		
+	})
+	.fail(function(jqXHR, error, errorThrown){
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+	});
+}
 
